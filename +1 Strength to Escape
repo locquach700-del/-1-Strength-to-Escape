@@ -1,0 +1,190 @@
+-- [[ PUNCH WALL SIMULATOR - FORCE PURCHASE WEIGHT v7.3 ]]
+
+-- 1. XOÁ SẠCH BỘ NHỚ UI CŨ TRÁNH XUNG ĐỘT
+pcall(function()
+    if _G.RayfieldFolder then _G.RayfieldFolder = nil end
+    local CoreGui = game:GetService("CoreGui")
+    for _, gui in pairs(CoreGui:GetChildren()) do
+        if gui.Name == "Rayfield" then gui:Destroy() end
+    end
+end)
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local PunchRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("PunchWall")
+local StrengthRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("GainStrength")
+local BuyWeightRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("PurchaseWeight")
+
+local Player = game:GetService("Players").LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local SoundService = game:GetService("SoundService")
+
+getgenv().HyperTrain = false
+getgenv().AoePunch = false
+getgenv().ForceBuyWeight = false
+getgenv().CleanScreenUltimate = false
+
+-- DANH SÁCH TẠ CHUẨN ĐƯỢC ĐỒNG BỘ THEO WINS VÀ TÊN TRONG EXPLORER
+local WeightDatabase = {
+    {Name = "Wood Weight",      Wins = 0},
+    {Name = "Weight",           Wins = 1},
+    {Name = "Stone Weight",     Wins = 5},
+    {Name = "Gold Weight",      Wins = 20},
+    {Name = "Electric Weight",  Wins = 60},
+    {Name = "Flame Weight",     Wins = 250},
+    {Name = "Acid Weight",      Wins = 1200},
+    {Name = "Galaxy Weight",    Wins = 8000},
+    {Name = "Hacker Weight",    Wins = 45000},
+    {Name = "Blackhole Weight", Wins = 150000},
+    {Name = "Magma Weight",     Wins = 500000}, 
+    {Name = "Void Weight",      Wins = 1000000}, 
+    {Name = "Diamond Weight",   Wins = 5000000},
+    {Name = "Demon Weight",     Wins = 25000000},
+    {Name = "Celestial Weight", Wins = 100000000},
+    {Name = "Infinity Weight",  Wins = 999999999}
+}
+
+local function GetCurrentWins()
+    local leaderstats = Player:FindFirstChild("leaderstats")
+    if leaderstats then
+        local winsValue = leaderstats:FindFirstChild("Wins") or leaderstats:FindFirstChild("Win")
+        if winsValue then return winsValue.Value end
+    end
+    return 0
+end
+
+-- THUẬT TOÁN ÉP MUA CƯỠNG CHẾ (KHÔNG CẦN DỊCH CHUYỂN)
+local function ForcePurchaseBestWeight()
+    local currentWins = GetCurrentWins()
+    local bestWeight = nil
+    
+    -- Tìm ra cây tạ xịn nhất dựa trên số Wins hiện có
+    for _, weight in ipairs(WeightDatabase) do
+        if currentWins >= weight.Wins then
+            bestWeight = weight.Name
+        end
+    end
+    
+    -- Nếu tìm ra, nã liên tục 5 lệnh mua cùng lúc để ép server mở khóa
+    if bestWeight then
+        pcall(function()
+            for i = 1, 5 do
+                task.spawn(function()
+                    BuyWeightRemote:FireServer(bestWeight)
+                end)
+            end
+        end)
+    end
+end
+
+-- BỘ LỌC ẨN KHUNG ĐEN VÀ TẮT TIẾNG ERROR
+local function GodSpeedClean()
+    pcall(function()
+        for _, sound in pairs(SoundService:GetDescendants()) do
+            if sound:IsA("Sound") then
+                local sName = sound.Name:lower()
+                if sName == "error" or string.find(sName, "punch") or string.find(sName, "hit") or string.find(sName, "gain") then
+                    sound.Volume = 0
+                    if sound.Playing then sound.Playing = false end
+                end
+            end
+        end
+        for _, v in pairs(PlayerGui:GetChildren()) do
+            for _, child in pairs(v:GetDescendants()) do
+                if child:IsA("TextLabel") or child:IsA("TextBox") then
+                    if string.find(child.Text, "Break") or string.find(child.Text, "Stage") or child.TextColor3 == Color3.fromRGB(255, 0, 0) then
+                        child.Visible = false
+                        local parent = child.Parent
+                        if parent and (parent:IsA("Frame") or parent:IsA("ImageLabel")) then
+                            parent.Visible = false
+                            if parent.Parent and parent.Parent:IsA("Frame") then
+                                parent.Parent.Visible = false
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- 3. GIAO DIỆN RAYFIELD v7.3
+local Window = Rayfield:CreateWindow({
+   Name = "🥊 Punch Wall | Force Buyer v7.3",
+   LoadingTitle = "FORCE BUY ENGINE",
+   LoadingSubtitle = "By Gemini - Sửa lỗi không dịch chuyển",
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = false 
+})
+
+local MainTab = Window:CreateTab("Auto Cày Cuốc", 4483362458)
+
+-- NÚT 1: TẬP LUYỆN TỐC ĐỘ ÁNH SÁNG
+MainTab:CreateToggle({
+   Name = "💪 Luyện Tập Tốc Độ Ánh Sáng",
+   CurrentValue = false,
+   Flag = "HyperTrainFlagV73", 
+   Callback = function(Value)
+        getgenv().HyperTrain = Value
+        if Value then
+            for i = 1, 3 do
+                task.spawn(function()
+                    while getgenv().HyperTrain do
+                        task.defer(function() StrengthRemote:FireServer() end)
+                        task.wait()
+                    end
+                end)
+            end
+        end
+   end,
+})
+
+-- NÚT 2: TỰ ĐỘNG ÉP MUA TẠ (ĐÃ SỬA LỖI)
+MainTab:CreateToggle({
+   Name = "🏋️ Auto Ép Mua Tạ Theo Wins (Không Cần TP)",
+   CurrentValue = false,
+   Flag = "ForceBuyWeightFlagV73", 
+   Callback = function(Value)
+        getgenv().ForceBuyWeight = Value
+        if Value then
+            task.spawn(function()
+                while getgenv().ForceBuyWeight do
+                    ForcePurchaseBestWeight()
+                    task.wait(0.5) -- Nửa giây quét mua một lần cho nhạy
+                end
+            end)
+        end
+   end,
+})
+
+-- NÚT 3: ĐẤM AOE MÀN 1 -> 19
+MainTab:CreateToggle({
+   Name = "🥊 Auto Đấm AOE (Màn 1 -> 19)",
+   CurrentValue = false,
+   Flag = "AoeFlagV73", 
+   Callback = function(Value)
+        getgenv().AoePunch = Value
+        if Value then
+            task.spawn(function()
+                while getgenv().AoePunch do
+                    for stageId = 1, 19 do task.spawn(function() PunchRemote:FireServer(stageId) end) end
+                    task.wait(0.05)
+                end
+            end)
+        end
+   end,
+})
+
+-- NÚT 4: DIỆT SỌC ĐEN + MUTE TIẾNG ERROR
+MainTab:CreateToggle({
+   Name = "📺 Diệt sọc đen + Tắt âm thanh Error",
+   CurrentValue = false,
+   Flag = "CleanUltimateFlagV73", 
+   Callback = function(Value)
+        getgenv().CleanScreenUltimate = Value
+        if Value then
+            task.spawn(function()
+                while getgenv().CleanScreenUltimate do GodSpeedClean() task.wait() end
+            end)
+        end
+   end,
+})
